@@ -1,0 +1,24 @@
+---
+# Deploy HMaster
+
+- name: Start HBase Master
+  command: "{{ hbase_home }}/bin/hbase-daemon.sh start master"
+  become_user: "{{ hadoop_user }}"
+  args:
+    creates: "{{ hbase_home }}/pids/hbase-{{ hadoop_user }}-master.pid"
+
+- name: Wait for HMaster web UI
+  wait_for:
+    port: "{{ hmaster_web_port }}"
+    timeout: 90
+
+- name: Check HMaster status
+  command: "{{ hbase_home }}/bin/hbase shell -n -e 'status'"
+  become_user: "{{ hadoop_user }}"
+  register: hbase_status
+  changed_when: false
+  failed_when: false
+
+- name: Display HMaster status
+  debug:
+    msg: "HMaster status:\n{{ hbase_status.stdout }}"

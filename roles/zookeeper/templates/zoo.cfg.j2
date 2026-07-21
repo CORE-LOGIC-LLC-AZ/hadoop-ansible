@@ -1,0 +1,14 @@
+# ZooKeeper configuration
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir={{ zookeeper_home }}/data
+dataLogDir={{ zookeeper_home }}/logs
+clientPort={{ zookeeper_port }}
+maxClientCnxns=60
+admin.enableServer=false
+4lw.commands.whitelist=*
+
+{% for host in groups['zookeeper'] %}
+server.{{ loop.index }}={{ hostvars[host]['ansible_host'] | default(host) }}:2888:3888
+{% endfor %}

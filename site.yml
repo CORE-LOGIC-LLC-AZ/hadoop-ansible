@@ -1,0 +1,90 @@
+---
+# Main playbook to setup complete Hadoop + HBase cluster
+
+- name: Prepare all hosts
+  hosts: all
+  become: true
+  roles:
+    - common
+
+- name: Install and configure Hadoop
+  hosts: all
+  become: true
+  roles:
+    - hadoop
+
+- name: Install and configure ZooKeeper
+  hosts: zookeeper
+  become: true
+  roles:
+    - zookeeper
+
+- name: Install and configure HBase
+  hosts: hmaster:regionserver
+  become: true
+  roles:
+    - hbase
+
+- name: Deploy NameNode
+  hosts: namenode
+  become: true
+  roles:
+    - namenode
+
+- name: Deploy DataNodes
+  hosts: datanode
+  become: true
+  roles:
+    - datanode
+
+- name: Prepare HDFS for HBase
+  hosts: namenode
+  become: true
+  tasks:
+    - name: Create HBase root directory on HDFS
+      command: "{{ hadoop_home }}/bin/hdfs dfs -mkdir -p /hbase"
+      become_user: "{{ hadoop_user | default('hadoop') }}"
+      changed_when: false
+
+    - name: Set HBase root directory ownership
+      command: "{{ hadoop_home }}/bin/hdfs dfs -chown -R hadoop:hadoop /hbase"
+      become_user: "{{ hadoop_user | default('hadoop') }}"
+      changed_when: false
+
+- name: Deploy HBase Master
+  hosts: hmaster
+  become: true
+  roles:
+    - hmaster
+
+- name: Deploy RegionServers
+  hosts: regionserver
+  become: true
+  roles:
+    - regionserver
+
+- name: Verify cluster health
+  hosts: namenode
+  become: true
+  tasks:
+    - name: Check HDFS health
+      command: "{{ hadoop_home }}/bin/hdfs dfsadmin -report"
+      become_user: "{{ hadoop_user | default('hadoop') }}"
+      register: hdfs_report
+      changed_when: false
+
+    - name: Display HDFS health
+      debug:
+        msg: "HDFS Health Report:\n{{ hdfs_report.stdout }}"
+
+    - name: Check HBase status
+      command: "{{ hbase_home }}/bin/hbase shell -n -e 'status'"
+      become_user: "{{ hadoop_user | default('hadoop') }}"
+      delegate_to: "{{ groups['hmaster'][0] }}"
+      register: hbase_status
+      changed_when: false
+      failed_when: false
+
+    - name: Display HBase status
+      debug:
+        msg: "HBase Status:\n{{ hbase_status.stdout }}"

@@ -1,0 +1,112 @@
+---
+# Core system setup - JDK, user, directories
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install required packages
+  apt:
+    name:
+      - openjdk-11-jdk
+      - rsync
+      - net-tools
+      - curl
+      - wget
+      - jq
+      - python3
+      - lsof
+      - procps
+      - openssh-server
+    state: present
+
+- name: Create hadoop group
+  group:
+    name: "{{ hadoop_group }}"
+    gid: "{{ hadoop_gid }}"
+    system: yes
+
+- name: Create hadoop user
+  user:
+    name: "{{ hadoop_user }}"
+    uid: "{{ hadoop_uid }}"
+    group: "{{ hadoop_group }}"
+    home: "/home/{{ hadoop_user }}"
+    create_home: yes
+    shell: /bin/bash
+    generate_ssh_key: yes
+    ssh_key_file: .ssh/id_rsa
+
+- name: Ensure .ssh directory permissions
+  file:
+    path: "/home/{{ hadoop_user }}/.ssh"
+    state: directory
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0700'
+
+- name: Read hadoop user public key
+  slurp:
+    src: "/home/{{ hadoop_user }}/.ssh/id_rsa.pub"
+  register: hadoop_pubkey
+
+- name: Authorize hadoop SSH keys across the cluster
+  authorized_key:
+    user: "{{ hadoop_user }}"
+    key: "{{ hostvars[item]['hadoop_pubkey']['content'] | b64decode }}"
+    state: present
+  loop: "{{ groups['all'] }}"
+  when: hostvars[item]['hadoop_pubkey'] is defined
+
+- name: Configure SSH client for hadoop user
+  copy:
+    content: |
+      Host *
+        StrictHostKeyChecking no
+        UserKnownHostsFile /dev/null
+    dest: "/home/{{ hadoop_user }}/.ssh/config"
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0600'
+
+- name: Create data and log directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0755'
+  loop:
+    - "{{ data_dir }}/namenode"
+    - "{{ data_dir }}/datanode"
+    - "{{ data_dir }}/journal"
+    - "{{ data_dir }}/hbase"
+    - "{{ data_dir }}/hadoop-temp"
+    - "{{ logs_dir }}"
+    - /var/hadoop/pids
+
+- name: Set Java alternatives
+  alternatives:
+    name: java
+    path: "{{ java_home }}/bin/java"
+    priority: 100
+
+- name: Configure JAVA_HOME in profile
+  blockinfile:
+    path: /etc/profile.d/java.sh
+    create: yes
+    mode: '0755'
+    block: |
+      export JAVA_HOME={{ java_home }}
+      export PATH=$PATH:$JAVA_HOME/bin
+
+- name: Verify Java installation
+  command: java -version
+  register: java_check
+  changed_when: false
+  failed_when: java_check.rc != 0
+
+- name: Display Java version
+  debug:
+    msg: "Java version: {{ java_check.stderr_lines | default(java_check.stdout_lines) | first }}"

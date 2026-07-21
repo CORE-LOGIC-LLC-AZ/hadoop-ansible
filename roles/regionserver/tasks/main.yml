@@ -1,0 +1,23 @@
+---
+# Deploy RegionServer
+
+- name: Start HBase RegionServer
+  command: "{{ hbase_home }}/bin/hbase-daemon.sh start regionserver"
+  become_user: "{{ hadoop_user }}"
+  args:
+    creates: "{{ hbase_home }}/pids/hbase-{{ hadoop_user }}-regionserver.pid"
+
+- name: Wait for RegionServer web UI
+  wait_for:
+    port: "{{ hregionserver_web_port }}"
+    timeout: 90
+
+- name: Check RegionServer process
+  command: "pgrep -u {{ hadoop_user }} -f 'HRegionServer'"
+  register: rs_proc
+  changed_when: false
+  failed_when: rs_proc.rc != 0
+
+- name: Display RegionServer status
+  debug:
+    msg: "RegionServer is running on {{ inventory_hostname }}"

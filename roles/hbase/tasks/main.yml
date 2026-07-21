@@ -1,0 +1,75 @@
+---
+# Install and configure HBase
+
+- name: Download HBase (Hadoop 3 build)
+  get_url:
+    url: "https://archive.apache.org/dist/hbase/{{ hbase_version }}/hbase-{{ hbase_version }}-hadoop3-bin.tar.gz"
+    dest: "/tmp/hbase-{{ hbase_version }}-hadoop3-bin.tar.gz"
+    mode: '0644'
+    timeout: 60
+
+- name: Extract HBase
+  unarchive:
+    src: "/tmp/hbase-{{ hbase_version }}-hadoop3-bin.tar.gz"
+    dest: /opt
+    remote_src: yes
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    creates: "/opt/hbase-{{ hbase_version }}-hadoop3"
+
+- name: Create HBase symlink
+  file:
+    src: "/opt/hbase-{{ hbase_version }}-hadoop3"
+    dest: "{{ hbase_home }}"
+    state: link
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    force: yes
+
+- name: Configure hbase-site.xml
+  template:
+    src: hbase-site.xml.j2
+    dest: "{{ hbase_home }}/conf/hbase-site.xml"
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0644'
+
+- name: Configure hbase-env.sh
+  template:
+    src: hbase-env.sh.j2
+    dest: "{{ hbase_home }}/conf/hbase-env.sh"
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0644'
+
+- name: Configure regionservers file
+  template:
+    src: regionservers.j2
+    dest: "{{ hbase_home }}/conf/regionservers"
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0644'
+
+- name: Create HBase directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0755'
+  loop:
+    - "{{ hbase_home }}/logs"
+    - "{{ hbase_home }}/pids"
+    - "{{ data_dir }}/hbase"
+
+- name: Set HBase environment variables
+  blockinfile:
+    path: /etc/profile.d/hbase.sh
+    create: yes
+    mode: '0755'
+    block: |
+      export HBASE_HOME={{ hbase_home }}
+      export HBASE_CONF_DIR=$HBASE_HOME/conf
+      export HADOOP_HOME={{ hadoop_home }}
+      export PATH=$PATH:$HBASE_HOME/bin
+      export HBASE_LOG_DIR={{ hbase_home }}/logs

@@ -1,0 +1,35 @@
+---
+# Deploy NameNode
+
+- name: Format NameNode
+  command: "{{ hadoop_home }}/bin/hdfs namenode -format -nonInteractive -force"
+  become_user: "{{ hadoop_user }}"
+  args:
+    creates: "{{ data_dir }}/namenode/current/VERSION"
+
+- name: Start NameNode
+  command: "{{ hadoop_home }}/bin/hdfs --daemon start namenode"
+  become_user: "{{ hadoop_user }}"
+  args:
+    creates: "/var/hadoop/pids/hadoop-{{ hadoop_user }}-namenode.pid"
+
+- name: Wait for NameNode web UI
+  wait_for:
+    port: "{{ namenode_web_port }}"
+    timeout: 90
+
+- name: Wait for NameNode RPC
+  wait_for:
+    port: "{{ namenode_rpc_port }}"
+    timeout: 90
+
+- name: Check NameNode status
+  command: "{{ hadoop_home }}/bin/hdfs dfsadmin -report"
+  become_user: "{{ hadoop_user }}"
+  register: nn_report
+  changed_when: false
+  failed_when: nn_report.rc != 0
+
+- name: Display NameNode status
+  debug:
+    msg: "NameNode is running. Health report:\n{{ nn_report.stdout }}"

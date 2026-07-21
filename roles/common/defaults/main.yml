@@ -1,0 +1,5 @@
+---
+hadoop_user: hadoop
+hadoop_group: hadoop
+hadoop_uid: 1001
+hadoop_gid: 1001

@@ -1,0 +1,45 @@
+---
+# Default variables for Hadoop + HBase cluster
+
+hadoop_user: hadoop
+hadoop_group: hadoop
+
+# Versions / paths
+# Compatible stack (HBase 2.5.x supports Hadoop 3.3.5+ and 3.4.0+; ZK 3.4+ min)
+# HBase 2.5.15 = Apache stable; Hadoop 3.4.3 = latest 3.4.x (3.5.0 not yet in HBase matrix);
+# ZooKeeper 3.8.6 = ZooKeeper stable line
+hadoop_version: "3.4.3"
+hadoop_home: "/opt/hadoop"
+hbase_version: "2.5.15"
+hbase_home: "/opt/hbase"
+zookeeper_version: "3.8.6"
+zookeeper_home: "/opt/zookeeper"
+java_home: "/usr/lib/jvm/java-11-openjdk-amd64"
+
+# Cluster paths
+cluster_name: "hadoop-cluster"
+data_dir: "/var/hadoop/data"
+logs_dir: "/var/hadoop/logs"
+
+# Service ports
+namenode_web_port: 9870
+namenode_rpc_port: 9820
+datanode_web_port: 9864
+datanode_rpc_port: 9866
+zookeeper_port: 2181
+hmaster_web_port: 16010
+hregionserver_rpc_port: 16020
+hregionserver_web_port: 16030
+
+# HDFS
+dfs_replication: 3
+dfs_block_size: "134217728"
+dfs_namenode_handler_count: 100
+dfs_datanode_handler_count: 10
+
+# Memory
+yarn_memory_mb: 4096
+hbase_heapsize: "2048"
+
+# Optional YARN
+enable_yarn: true

@@ -1,0 +1,11 @@
+export JAVA_HOME={{ java_home }}
+export HADOOP_HOME={{ hadoop_home }}
+export HBASE_HOME={{ hbase_home }}
+export HBASE_PID_DIR={{ hbase_home }}/pids
+export HBASE_LOG_DIR={{ hbase_home }}/logs
+export HBASE_HEAPSIZE={{ hbase_heapsize }}
+export HBASE_MANAGES_ZK=false
+export HBASE_CLASSPATH={{ hadoop_home }}/etc/hadoop
+export HBASE_OPTS="-XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+export HBASE_MASTER_OPTS="-Xmx{{ hbase_heapsize }}m -Xms{{ hbase_heapsize }}m"
+export HBASE_REGIONSERVER_OPTS="-Xmx{{ hbase_heapsize }}m -Xms{{ hbase_heapsize }}m"

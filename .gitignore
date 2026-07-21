@@ -1,24 +1,36 @@
-# Compiled class file
-*.class
+# Ansible
+*.retry
+.vault_pass
+.vault_password
+vault_password_file
 
-# Log file
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env/
+
+# Editor / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs and local artifacts
 *.log
+*.tmp
+*.bak
 
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
+# Downloaded archives (keep out of git if cached locally)
 *.tar.gz
-*.rar
+*.tgz
+*.zip
+*.jar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Java crash logs
 hs_err_pid*
 replay_pid*

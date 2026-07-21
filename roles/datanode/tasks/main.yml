@@ -1,0 +1,34 @@
+---
+# Deploy DataNode
+
+- name: Start DataNode
+  command: "{{ hadoop_home }}/bin/hdfs --daemon start datanode"
+  become_user: "{{ hadoop_user }}"
+  args:
+    creates: "/var/hadoop/pids/hadoop-{{ hadoop_user }}-datanode.pid"
+
+- name: Wait for DataNode web UI
+  wait_for:
+    port: "{{ datanode_web_port }}"
+    timeout: 60
+
+- name: Refresh NameNode nodes
+  command: "{{ hadoop_home }}/bin/hdfs dfsadmin -refreshNodes"
+  become_user: "{{ hadoop_user }}"
+  run_once: true
+  delegate_to: "{{ groups['namenode'][0] }}"
+  changed_when: false
+  failed_when: false
+
+- name: Verify DataNode registration
+  command: "{{ hadoop_home }}/bin/hdfs dfsadmin -report"
+  become_user: "{{ hadoop_user }}"
+  run_once: true
+  delegate_to: "{{ groups['namenode'][0] }}"
+  register: nn_report
+  changed_when: false
+
+- name: Display DataNode status
+  debug:
+    msg: "DataNode registered. Report:\n{{ nn_report.stdout }}"
+  run_once: true

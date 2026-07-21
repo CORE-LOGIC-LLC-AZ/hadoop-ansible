@@ -1,0 +1,110 @@
+---
+# Install and configure Hadoop core components
+
+- name: Download Hadoop
+  get_url:
+    url: "https://archive.apache.org/dist/hadoop/common/hadoop-{{ hadoop_version }}/hadoop-{{ hadoop_version }}.tar.gz"
+    dest: "/tmp/hadoop-{{ hadoop_version }}.tar.gz"
+    mode: '0644'
+    timeout: 60
+
+- name: Extract Hadoop
+  unarchive:
+    src: "/tmp/hadoop-{{ hadoop_version }}.tar.gz"
+    dest: /opt
+    remote_src: yes
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    creates: "/opt/hadoop-{{ hadoop_version }}"
+
+- name: Create Hadoop symlink
+  file:
+    src: "/opt/hadoop-{{ hadoop_version }}"
+    dest: "{{ hadoop_home }}"
+    state: link
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    force: yes
+
+- name: Configure core-site.xml
+  template:
+    src: core-site.xml.j2
+    dest: "{{ hadoop_home }}/etc/hadoop/core-site.xml"
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0644'
+
+- name: Configure hdfs-site.xml
+  template:
+    src: hdfs-site.xml.j2
+    dest: "{{ hadoop_home }}/etc/hadoop/hdfs-site.xml"
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0644'
+
+- name: Configure hadoop-env.sh
+  template:
+    src: hadoop-env.sh.j2
+    dest: "{{ hadoop_home }}/etc/hadoop/hadoop-env.sh"
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0644'
+
+- name: Configure workers file
+  template:
+    src: workers.j2
+    dest: "{{ hadoop_home }}/etc/hadoop/workers"
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0644'
+
+- name: Configure yarn-site.xml
+  template:
+    src: yarn-site.xml.j2
+    dest: "{{ hadoop_home }}/etc/hadoop/yarn-site.xml"
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0644'
+  when: enable_yarn | default(false)
+
+- name: Configure mapred-site.xml
+  template:
+    src: mapred-site.xml.j2
+    dest: "{{ hadoop_home }}/etc/hadoop/mapred-site.xml"
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0644'
+  when: enable_yarn | default(false)
+
+- name: Set Hadoop environment variables
+  blockinfile:
+    path: /etc/profile.d/hadoop.sh
+    create: yes
+    mode: '0755'
+    block: |
+      export HADOOP_HOME={{ hadoop_home }}
+      export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+      export HADOOP_MAPRED_HOME=$HADOOP_HOME
+      export HADOOP_COMMON_HOME=$HADOOP_HOME
+      export HADOOP_HDFS_HOME=$HADOOP_HOME
+      export YARN_HOME=$HADOOP_HOME
+      export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+      export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native"
+      export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
+      export HADOOP_LOG_DIR={{ logs_dir }}
+      export HADOOP_PID_DIR=/var/hadoop/pids
+
+- name: Ensure Hadoop log and pid directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    mode: '0755'
+  loop:
+    - "{{ logs_dir }}"
+    - /var/hadoop/pids
+    - "{{ data_dir }}/namenode"
+    - "{{ data_dir }}/datanode"
+    - "{{ data_dir }}/journal"
+    - "{{ data_dir }}/hadoop-temp"
